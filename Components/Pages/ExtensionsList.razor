@@ -1,0 +1,141 @@
+@page "/extensions-list"
+@using AsteriskManager.Services
+@inject PjsipManagementService PjsipMgr
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<PageTitle>Extensions</PageTitle>
+
+<h1>Extensions</h1>
+
+@if (!string.IsNullOrEmpty(_statusMessage))
+{
+    <div class="alert @(_isError ? "alert-danger" : "alert-success") alert-dismissible" role="alert">
+        @_statusMessage
+        <button type="button" class="btn-close" @onclick="() => _statusMessage = null"></button>
+    </div>
+}
+
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        Quick Add Extension
+    </div>
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label mb-0">Extension #</label>
+                <input type="text" class="form-control" @bind="_newName" placeholder="e.g. 1002" />
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-0">Password</label>
+                <input type="text" class="form-control" @bind="_newPassword" placeholder="SIP password" />
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-0">Context</label>
+                <input type="text" class="form-control" @bind="_newContext" placeholder="from-internal" />
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-0">Codecs</label>
+                <input type="text" class="form-control" @bind="_newAllow" placeholder="ulaw" />
+            </div>
+            <div class="col-auto d-flex align-items-end">
+                <button class="btn btn-success" @onclick="AddExtensionAsync" disabled="@_busy">Add</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-striped table-hover mb-0">
+            <thead><tr><th>Extension</th><th>Username</th><th>Password</th><th>Context</th><th>Codecs</th><th>Max Contacts</th><th></th></tr></thead>
+            <tbody>
+            @if (_data != null)
+            {
+                @foreach (var ext in _data.Extensions)
+                {
+                    <tr style="cursor:pointer" @onclick="() => EditExtension(ext.Name)">
+                        <td><strong>@ext.Name</strong></td>
+                        <td>@ext.Username</td>
+                        <td>@ext.Password</td>
+                        <td>@ext.Context</td>
+                        <td>@ext.Allow</td>
+                        <td>@ext.MaxContacts</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteExtensionAsync(ext.Name)" @onclick:stopPropagation="true" disabled="@_busy">Delete</button>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private PjsipParseResult? _data;
+    private string? _statusMessage;
+    private bool _isError;
+    private bool _busy;
+    private string _newName = string.Empty;
+    private string _newPassword = string.Empty;
+    private string _newContext = "from-internal";
+    private string _newAllow = "ulaw";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private void EditExtension(string name) { Nav.NavigateTo("extension-edit/" + name); }
+
+    private async Task LoadAsync()
+    {
+        try { _data = await PjsipMgr.ParseAsync(); }
+        catch (Exception ex) { _statusMessage = ex.Message; _isError = true; }
+    }
+
+    private async Task AddExtensionAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newName)) { _statusMessage = "Extension number is required."; _isError = true; return; }
+        if (_data == null) return;
+        if (_data.Extensions.Any(e => e.Name == _newName)) { _statusMessage = "Extension " + _newName + " already exists."; _isError = true; return; }
+        _busy = true;
+        var ext = new PjsipExtension
+        {
+            Name = _newName,
+            Username = _newName,
+            Password = string.IsNullOrWhiteSpace(_newPassword) ? _newName : _newPassword,
+            Context = string.IsNullOrWhiteSpace(_newContext) ? "from-internal" : _newContext,
+            Allow = string.IsNullOrWhiteSpace(_newAllow) ? "ulaw" : _newAllow
+        };
+        PjsipMgr.AddExtension(_data, ext);
+        try
+        {
+            await PjsipMgr.SaveAsync(_data);
+            await PjsipMgr.ReloadAsync();
+            _statusMessage = "Extension " + _newName + " added and PJSIP reloaded.";
+            _isError = false;
+            _newName = string.Empty;
+            _newPassword = string.Empty;
+        }
+        catch (Exception ex) { _statusMessage = ex.Message; _isError = true; }
+        _busy = false;
+    }
+
+    private async Task DeleteExtensionAsync(string name)
+    {
+        if (_data == null) return;
+        _busy = true;
+        PjsipMgr.RemoveExtension(_data, name);
+        try
+        {
+            await PjsipMgr.SaveAsync(_data);
+            await PjsipMgr.ReloadAsync();
+            _statusMessage = "Extension " + name + " deleted and PJSIP reloaded.";
+            _isError = false;
+        }
+        catch (Exception ex) { _statusMessage = ex.Message; _isError = true; }
+        _busy = false;
+    }
+}

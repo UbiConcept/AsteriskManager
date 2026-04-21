@@ -1,0 +1,81 @@
+@page "/pjsip"
+@using AsteriskManager.Services
+@inject AsteriskService Asterisk
+@rendermode InteractiveServer
+
+<PageTitle>PJSIP Editor</PageTitle>
+
+<h1>PJSIP Editor</h1>
+
+@if (!string.IsNullOrEmpty(_statusMessage))
+{
+    <div class="alert @(_isError ? "alert-danger" : "alert-success")" role="alert">
+        @_statusMessage
+    </div>
+}
+
+<div class="mb-3">
+    <textarea class="form-control font-monospace" rows="28" @bind="_content" @bind:event="oninput"></textarea>
+</div>
+
+<div class="d-flex gap-2">
+    <button class="btn btn-primary" @onclick="SaveAsync" disabled="@_busy">
+        @(_busy ? "Saving..." : "Save")
+    </button>
+    <button class="btn btn-warning" @onclick="ReloadAsync" disabled="@_busy">
+        @(_busy ? "Reloading..." : "Save and Reload PJSIP")
+    </button>
+    <button class="btn btn-secondary" @onclick="LoadAsync" disabled="@_busy">
+        Revert
+    </button>
+</div>
+
+@code {
+    private string _content = string.Empty;
+    private string? _statusMessage;
+    private bool _isError;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _busy = true;
+        _statusMessage = null;
+        try { _content = await Asterisk.ReadPjsipAsync(); }
+        catch (Exception ex) { _statusMessage = ex.Message; _isError = true; }
+        _busy = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        _statusMessage = null;
+        try
+        {
+            await Asterisk.SavePjsipAsync(_content);
+            _statusMessage = "File saved.";
+            _isError = false;
+        }
+        catch (Exception ex) { _statusMessage = ex.Message; _isError = true; }
+        _busy = false;
+    }
+
+    private async Task ReloadAsync()
+    {
+        _busy = true;
+        _statusMessage = null;
+        try
+        {
+            await Asterisk.SavePjsipAsync(_content);
+            var result = await Asterisk.ReloadPjsipAsync();
+            _statusMessage = result;
+            _isError = result.StartsWith("Error") || result.StartsWith("Failed");
+        }
+        catch (Exception ex) { _statusMessage = ex.Message; _isError = true; }
+        _busy = false;
+    }
+}

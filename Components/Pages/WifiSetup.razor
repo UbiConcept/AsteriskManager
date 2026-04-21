@@ -1,0 +1,166 @@
+@page "/wifi"
+@using AsteriskManager.Services
+@inject WifiService Wifi
+@rendermode InteractiveServer
+
+<PageTitle>WiFi Setup</PageTitle>
+
+<h1>WiFi Setup</h1>
+
+@if (!string.IsNullOrEmpty(_statusMessage))
+{
+    <div class="alert @(_isError ? "alert-danger" : "alert-success") alert-dismissible" role="alert">
+        @_statusMessage
+        <button type="button" class="btn-close" @onclick="() => _statusMessage = null"></button>
+    </div>
+}
+
+<div class="card mb-3">
+    <div class="card-header">Interface Status</div>
+    <div class="card-body">
+        <pre class="mb-0" style="white-space:pre-wrap;font-size:0.85em">@_deviceStatus</pre>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        Available Networks
+        <button class="btn btn-sm btn-outline-primary" @onclick="ScanAsync" disabled="@_busy">@(_busy ? "Scanning..." : "Scan")</button>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped table-hover mb-0">
+            <thead><tr><th>SSID</th><th>Signal</th><th>Security</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var net in _networks)
+            {
+                <tr class="@(net.InUse ? "table-success" : "")">
+                    <td>@(net.InUse ? "* " : "")@net.Ssid</td>
+                    <td>@net.Signal%</td>
+                    <td>@net.Security</td>
+                    <td>
+                        @if (net.InUse)
+                        {
+                            <button class="btn btn-sm btn-outline-danger" @onclick="DisconnectAsync" disabled="@_busy">Disconnect</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-outline-success" @onclick="() => SelectNetwork(net.Ssid)" disabled="@_busy">Connect</button>
+                        }
+                    </td>
+                </tr>
+            }
+            @if (_networks.Count == 0)
+            {
+                <tr><td colspan="4" class="text-center text-muted">No networks found. Click Scan.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (_showPassword)
+{
+    <div class="card mb-3">
+        <div class="card-header">Connect to @_selectedSsid</div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input type="password" class="form-control" @bind="_password" />
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" @onclick="ConnectAsync" disabled="@_busy">@(_busy ? "Connecting..." : "Connect")</button>
+                <button class="btn btn-secondary" @onclick="() => _showPassword = false">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="card mb-3">
+    <div class="card-header">Saved Connections</div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <tbody>
+            @foreach (var conn in _savedConnections)
+            {
+                <tr>
+                    <td>@conn</td>
+                    <td class="text-end"><button class="btn btn-sm btn-outline-danger" @onclick="() => ForgetAsync(conn)" disabled="@_busy">Forget</button></td>
+                </tr>
+            }
+            @if (_savedConnections.Count == 0)
+            {
+                <tr><td colspan="2" class="text-center text-muted">No saved WiFi connections.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private List<WifiNetwork> _networks = new();
+    private List<string> _savedConnections = new();
+    private string _deviceStatus = "Loading...";
+    private string? _statusMessage;
+    private bool _isError;
+    private bool _busy;
+    private bool _showPassword;
+    private string _selectedSsid = string.Empty;
+    private string _password = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAllAsync();
+    }
+
+    private async Task RefreshAllAsync()
+    {
+        _busy = true;
+        _deviceStatus = await Wifi.GetStatusAsync();
+        _networks = await Wifi.ScanAsync();
+        _savedConnections = await Wifi.GetSavedConnectionsAsync();
+        _busy = false;
+    }
+
+    private async Task ScanAsync()
+    {
+        _busy = true;
+        _networks = await Wifi.ScanAsync();
+        _deviceStatus = await Wifi.GetStatusAsync();
+        _busy = false;
+    }
+
+    private void SelectNetwork(string ssid)
+    {
+        _selectedSsid = ssid;
+        _password = string.Empty;
+        _showPassword = true;
+    }
+
+    private async Task ConnectAsync()
+    {
+        _busy = true;
+        _showPassword = false;
+        var result = await Wifi.ConnectAsync(_selectedSsid, _password);
+        _isError = result.StartsWith("Error") || result.StartsWith("Failed");
+        _statusMessage = _isError ? result : "Connected to " + _selectedSsid;
+        await RefreshAllAsync();
+    }
+
+    private async Task DisconnectAsync()
+    {
+        _busy = true;
+        var result = await Wifi.DisconnectAsync();
+        _isError = result.StartsWith("Error") || result.StartsWith("Failed");
+        _statusMessage = _isError ? result : "Disconnected.";
+        await RefreshAllAsync();
+    }
+
+    private async Task ForgetAsync(string name)
+    {
+        _busy = true;
+        var result = await Wifi.ForgetConnectionAsync(name);
+        _isError = result.StartsWith("Error") || result.StartsWith("Failed");
+        _statusMessage = _isError ? result : "Removed " + name;
+        await RefreshAllAsync();
+    }
+}

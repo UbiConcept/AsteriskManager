@@ -1,0 +1,145 @@
+@page "/extension-edit/{ExtName}"
+@using AsteriskManager.Services
+@inject PjsipManagementService PjsipMgr
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<PageTitle>Edit @ExtName</PageTitle>
+
+<h1>Edit Extension @ExtName</h1>
+
+@if (!string.IsNullOrEmpty(_statusMessage))
+{
+    <div class="alert @(_isError ? "alert-danger" : "alert-success") alert-dismissible" role="alert">
+        @_statusMessage
+        <button type="button" class="btn-close" @onclick="() => _statusMessage = null"></button>
+    </div>
+}
+
+@if (_ext != null)
+{
+    <div class="card mb-3">
+        <div class="card-header">Endpoint</div>
+        <div class="card-body">
+            <div class="row mb-2"><div class="col-md-3"><label class="form-label">Context</label></div><div class="col-md-9"><input class="form-control" @bind="_ext.Context" /></div></div>
+            <div class="row mb-2"><div class="col-md-3"><label class="form-label">Disallow</label></div><div class="col-md-9"><input class="form-control" @bind="_ext.Disallow" /></div></div>
+            <div class="row mb-2"><div class="col-md-3"><label class="form-label">Allow (codecs)</label></div><div class="col-md-9"><input class="form-control" @bind="_ext.Allow" /></div></div>
+            <div class="row mb-2"><div class="col-md-3"><label class="form-label">RTP Symmetric</label></div><div class="col-md-9"><input type="checkbox" class="form-check-input" @bind="_ext.RtpSymmetric" /></div></div>
+            <div class="row mb-2"><div class="col-md-3"><label class="form-label">Rewrite Contact</label></div><div class="col-md-9"><input type="checkbox" class="form-check-input" @bind="_ext.RewriteContact" /></div></div>
+            <div class="row mb-2"><div class="col-md-3"><label class="form-label">Force Rport</label></div><div class="col-md-9"><input type="checkbox" class="form-check-input" @bind="_ext.ForceRport" /></div></div>
+            @foreach (var key in _ext.EndpointExtra.Keys.ToList())
+            {
+                <div class="row mb-2"><div class="col-md-3"><input class="form-control form-control-sm" value="@key" disabled /></div><div class="col-md-7"><input class="form-control" @bind="_ext.EndpointExtra[key]" /></div><div class="col-md-2"><button class="btn btn-sm btn-outline-danger" @onclick="() => _ext.EndpointExtra.Remove(key)">Remove</button></div></div>
+            }
+            <div class="row mb-2"><div class="col-md-3"><input class="form-control form-control-sm" placeholder="New key" @bind="_newEndpointKey" /></div><div class="col-md-7"><input class="form-control" placeholder="Value" @bind="_newEndpointVal" /></div><div class="col-md-2"><button class="btn btn-sm btn-outline-primary" @onclick="AddEndpointProp">Add</button></div></div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">Authentication</div>
+        <div class="card-body">
+            <div class="row mb-2"><div class="col-md-3"><label class="form-label">Auth Type</label></div><div class="col-md-9"><input class="form-control" @bind="_ext.AuthType" /></div></div>
+            <div class="row mb-2"><div class="col-md-3"><label class="form-label">Username</label></div><div class="col-md-9"><input class="form-control" @bind="_ext.Username" /></div></div>
+            <div class="row mb-2"><div class="col-md-3"><label class="form-label">Password</label></div><div class="col-md-9"><input class="form-control" @bind="_ext.Password" /></div></div>
+            @foreach (var key in _ext.AuthExtra.Keys.ToList())
+            {
+                <div class="row mb-2"><div class="col-md-3"><input class="form-control form-control-sm" value="@key" disabled /></div><div class="col-md-7"><input class="form-control" @bind="_ext.AuthExtra[key]" /></div><div class="col-md-2"><button class="btn btn-sm btn-outline-danger" @onclick="() => _ext.AuthExtra.Remove(key)">Remove</button></div></div>
+            }
+            <div class="row mb-2"><div class="col-md-3"><input class="form-control form-control-sm" placeholder="New key" @bind="_newAuthKey" /></div><div class="col-md-7"><input class="form-control" placeholder="Value" @bind="_newAuthVal" /></div><div class="col-md-2"><button class="btn btn-sm btn-outline-primary" @onclick="AddAuthProp">Add</button></div></div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">Address of Record (AOR)</div>
+        <div class="card-body">
+            <div class="row mb-2"><div class="col-md-3"><label class="form-label">Max Contacts</label></div><div class="col-md-9"><input type="number" class="form-control" @bind="_ext.MaxContacts" /></div></div>
+            @foreach (var key in _ext.AorExtra.Keys.ToList())
+            {
+                <div class="row mb-2"><div class="col-md-3"><input class="form-control form-control-sm" value="@key" disabled /></div><div class="col-md-7"><input class="form-control" @bind="_ext.AorExtra[key]" /></div><div class="col-md-2"><button class="btn btn-sm btn-outline-danger" @onclick="() => _ext.AorExtra.Remove(key)">Remove</button></div></div>
+            }
+            <div class="row mb-2"><div class="col-md-3"><input class="form-control form-control-sm" placeholder="New key" @bind="_newAorKey" /></div><div class="col-md-7"><input class="form-control" placeholder="Value" @bind="_newAorVal" /></div><div class="col-md-2"><button class="btn btn-sm btn-outline-primary" @onclick="AddAorProp">Add</button></div></div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mb-4">
+        <button class="btn btn-primary" @onclick="SaveAsync" disabled="@_busy">@(_busy ? "Saving..." : "Save")</button>
+        <button class="btn btn-warning" @onclick="SaveAndReloadAsync" disabled="@_busy">@(_busy ? "Saving..." : "Save and Reload PJSIP")</button>
+        <button class="btn btn-secondary" @onclick="GoBack">Back to List</button>
+    </div>
+}
+else if (!_loading)
+{
+    <div class="alert alert-warning">Extension @ExtName not found.</div>
+    <a href="extensions-list" class="btn btn-secondary">Back to List</a>
+}
+
+@code {
+    [Parameter] public string ExtName { get; set; } = string.Empty;
+    private PjsipParseResult? _data;
+    private PjsipExtension? _ext;
+    private string? _statusMessage;
+    private bool _isError;
+    private bool _busy;
+    private bool _loading = true;
+    private string _newEndpointKey = string.Empty, _newEndpointVal = string.Empty;
+    private string _newAuthKey = string.Empty, _newAuthVal = string.Empty;
+    private string _newAorKey = string.Empty, _newAorVal = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _data = await PjsipMgr.ParseAsync();
+            _ext = PjsipMgr.FindExtension(_data, ExtName);
+        }
+        catch (Exception ex) { _statusMessage = ex.Message; _isError = true; }
+        _loading = false;
+    }
+
+    private void AddEndpointProp()
+    {
+        if (!string.IsNullOrWhiteSpace(_newEndpointKey) && _ext != null)
+        { _ext.EndpointExtra[_newEndpointKey] = _newEndpointVal; _newEndpointKey = string.Empty; _newEndpointVal = string.Empty; }
+    }
+    private void AddAuthProp()
+    {
+        if (!string.IsNullOrWhiteSpace(_newAuthKey) && _ext != null)
+        { _ext.AuthExtra[_newAuthKey] = _newAuthVal; _newAuthKey = string.Empty; _newAuthVal = string.Empty; }
+    }
+    private void AddAorProp()
+    {
+        if (!string.IsNullOrWhiteSpace(_newAorKey) && _ext != null)
+        { _ext.AorExtra[_newAorKey] = _newAorVal; _newAorKey = string.Empty; _newAorVal = string.Empty; }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_data == null) return;
+        _busy = true;
+        try
+        {
+            await PjsipMgr.SaveAsync(_data);
+            _statusMessage = "Saved.";
+            _isError = false;
+        }
+        catch (Exception ex) { _statusMessage = ex.Message; _isError = true; }
+        _busy = false;
+    }
+
+    private void GoBack() { Nav.NavigateTo("extensions-list"); }
+
+    private async Task SaveAndReloadAsync()
+    {
+        if (_data == null) return;
+        _busy = true;
+        try
+        {
+            await PjsipMgr.SaveAsync(_data);
+            var result = await PjsipMgr.ReloadAsync();
+            _statusMessage = "Saved. " + result;
+            _isError = result.StartsWith("Error") || result.StartsWith("Failed");
+        }
+        catch (Exception ex) { _statusMessage = ex.Message; _isError = true; }
+        _busy = false;
+    }
+}

@@ -1,0 +1,17 @@
+[Unit]
+Description=Asterisk Manager Service
+After=network.target
+
+[Service]
+Type=notify
+WorkingDirectory=/opt/asteriskmanager
+ExecStart=/opt/asteriskmanager/AsteriskManager
+Restart=always
+RestartSec=10
+SyslogIdentifier=asteriskmanager
+User=root
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
+
+[Install]
+WantedBy=multi-user.target
