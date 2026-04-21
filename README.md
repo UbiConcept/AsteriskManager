@@ -15,6 +15,7 @@ A Blazor Server application for managing Asterisk PBX configurations with MQTT i
 - 📡 **MQTT Integration** - Remote command and control via MQTT
   - Subscribes to: `cmnd/UBI/{MacAddress}/SIPCMD/#`
   - Heartbeat: `tele/UBI/{MacAddress}/HEARTBEAT` (every 60 seconds)
+  - **Remote Updates**: Trigger software updates via MQTT command (see [MQTT-UPDATE.md](MQTT-UPDATE.md))
 - 🔄 **Auto-Update** - Automatic updates from ubiconcept.com
 - 📶 **WiFi Management** - Configure wireless network settings
 - 🚀 **Systemd Integration** - Auto-start on Linux boot
@@ -97,6 +98,14 @@ sudo journalctl -u asteriskmanager -f
 ### Published Topics
 - `tele/UBI/{MacAddress}/HEARTBEAT` - Heartbeat with UTC timestamp (every 60 seconds)
 
+### Remote Update Trigger
+You can trigger a software update remotely via MQTT. See [MQTT-UPDATE.md](MQTT-UPDATE.md) for details.
+
+```bash
+mosquitto_pub -h mqtt.jsmplus.com -p 4546 -u {MacAddress} -P UBIPASS \
+  -t "cmnd/UBI/{MacAddress}/SIPCMD/UPDATE" -m "update"
+```
+
 ## Auto-Update
 
 The application automatically checks for updates every hour. Update packages should be:
@@ -139,6 +148,12 @@ For issues:
 3. Ensure proper permissions on Asterisk configuration files
 
 ## Version History
+
+### v1.0.1 (Latest)
+- MQTT-triggered software updates
+- Remote update via `cmnd/UBI/{MacAddress}/SIPCMD/UPDATE` topic
+- Enhanced logging for update operations
+- Network binding fix (listen on all interfaces)
 
 ### v1.0.0 (Initial Release)
 - Blazor Server web interface
