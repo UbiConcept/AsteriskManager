@@ -8,13 +8,18 @@ public class MqttService : BackgroundService
 {
     private readonly ILogger<MqttService> _logger;
     private readonly MqttSettings _settings;
+    private readonly IServiceProvider _serviceProvider;
     private IMqttClient? _mqttClient;
     private string? _macAddress;
 
-    public MqttService(ILogger<MqttService> logger, IOptions<MqttSettings> settings)
+    public MqttService(
+        ILogger<MqttService> logger, 
+        IOptions<MqttSettings> settings,
+        IServiceProvider serviceProvider)
     {
         _logger = logger;
         _settings = settings.Value;
+        _serviceProvider = serviceProvider;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -124,7 +129,37 @@ public class MqttService : BackgroundService
 
     private async Task HandleMessageAsync(string topic, string payload)
     {
-        await Task.CompletedTask;
+        // Check if this is an UPDATE command
+        if (topic.EndsWith("/SIPCMD/UPDATE", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation("Received UPDATE command via MQTT. Initiating software update...");
+
+            try
+            {
+                // Get the AutoUpdateService from the service provider
+                var autoUpdateService = _serviceProvider.GetServices<IHostedService>()
+                    .OfType<AutoUpdateService>()
+                    .FirstOrDefault();
+
+                if (autoUpdateService != null)
+                {
+                    _logger.LogInformation("Triggering auto-update process...");
+                    await autoUpdateService.CheckAndApplyUpdateAsync();
+                }
+                else
+                {
+                    _logger.LogWarning("AutoUpdateService not found. Cannot perform update.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error triggering software update from MQTT command");
+            }
+        }
+        else
+        {
+            _logger.LogInformation("Received command on topic {Topic} with payload: {Payload}", topic, payload);
+        }
     }
 
     private async Task PublishHeartbeatAsync(CancellationToken cancellationToken)
