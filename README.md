@@ -4,7 +4,7 @@ A Blazor Server application for managing Asterisk PBX configurations with MQTT i
 
 ## Version
 
-**Current Version:** 1.0.5
+**Current Version:** 1.0.7
 
 ## Features
 
@@ -75,7 +75,7 @@ Configuration is managed through `appsettings.json`:
 
 ### Web Interface
 
-Access the web interface at `http://<device-ip>:5000`
+Access the web interface at `http://<device-ip>:8080`
 
 ### Service Management
 

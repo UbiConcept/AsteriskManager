@@ -1,0 +1,78 @@
+@page "/testupdate"
+@using AsteriskManager.Services
+@inject AutoUpdateService AutoUpdate
+@inject ILogger<TestUpdate> Logger
+
+<PageTitle>Test Update</PageTitle>
+
+<div class="container mt-4">
+    <h3>Test Auto-Update</h3>
+    <p>This page allows manual testing of the auto-update functionality.</p>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert alert-@alertClass">
+            @message
+        </div>
+    }
+
+    <button class="btn btn-warning" @onclick="TriggerUpdate" disabled="@isUpdating">
+        @if (isUpdating)
+        {
+            <span class="spinner-border spinner-border-sm me-2"></span>
+        }
+        Trigger Update Now
+    </button>
+
+    <div class="mt-3">
+        <small class="text-muted">
+            This will attempt to download and apply an update from the configured UpdateUrl.
+            The application will restart if the update is successful.
+        </small>
+    </div>
+</div>
+
+@code {
+    private bool isUpdating = false;
+    private string message = "";
+    private string alertClass = "info";
+
+    private async Task TriggerUpdate()
+    {
+        isUpdating = true;
+        message = "Checking for updates...";
+        alertClass = "info";
+        StateHasChanged();
+
+        try
+        {
+            Logger.LogInformation("Manual update triggered from UI");
+            
+            // Call the internal method through reflection since it's private
+            var method = typeof(AutoUpdateService).GetMethod("CheckAndApplyUpdateAsync", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            
+            if (method != null)
+            {
+                var task = method.Invoke(AutoUpdate, new object[] { CancellationToken.None }) as Task;
+                if (task != null)
+                {
+                    await task;
+                    message = "Update process completed. If an update was available, the application will restart.";
+                    alertClass = "success";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Error during update: {ex.Message}";
+            alertClass = "danger";
+            Logger.LogError(ex, "Error during manual update");
+        }
+        finally
+        {
+            isUpdating = false;
+            StateHasChanged();
+        }
+    }
+}

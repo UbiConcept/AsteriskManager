@@ -142,7 +142,7 @@ sudo journalctl -u asteriskmanager -n 50
 ### Port already in use
 Check if another service is using the same port:
 ```bash
-sudo netstat -tulpn | grep :5000
+sudo netstat -tulpn | grep :8080
 ```
 
 ### Permission issues
@@ -157,7 +157,7 @@ sudo chmod +x /opt/asteriskmanager/AsteriskManager
 The application requires:
 - Outbound HTTPS access to www.ubiconcept.com (for updates)
 - Outbound TCP access to mqtt.jsmplus.com:4546 (for MQTT)
-- Inbound HTTP access on port 5000 (or configured port)
+- Inbound HTTP access on port 8080 (or configured port)
 
 ## Security Notes
 
