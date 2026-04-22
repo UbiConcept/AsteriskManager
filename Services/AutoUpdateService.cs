@@ -141,7 +141,7 @@ public class AutoUpdateService : BackgroundService
             ZipFile.ExtractToDirectory(updatePackagePath, updatePath, overwriteFiles: true);
 
             var updateScriptPath = Path.Combine(currentPath, "update.sh");
-            
+
             var scriptContent = $"""
                 #!/bin/bash
                 sleep 3
@@ -155,7 +155,9 @@ public class AutoUpdateService : BackgroundService
                 rm -f "$0"
                 """;
 
-            await File.WriteAllTextAsync(updateScriptPath, scriptContent, cancellationToken);
+            // Write with Unix line endings (LF only)
+            var scriptBytes = System.Text.Encoding.UTF8.GetBytes(scriptContent.Replace("\r\n", "\n").Replace("\r", "\n"));
+            await File.WriteAllBytesAsync(updateScriptPath, scriptBytes, cancellationToken);
 
             var chmod = Process.Start(new ProcessStartInfo
             {
@@ -201,7 +203,7 @@ public class AutoUpdateService : BackgroundService
         if (string.IsNullOrEmpty(mac))
             return null;
 
-        return string.Join(":", Enumerable.Range(0, mac.Length / 2)
-            .Select(i => mac.Substring(i * 2, 2)));
+        // Return MAC address without colons
+        return mac;
     }
 }
