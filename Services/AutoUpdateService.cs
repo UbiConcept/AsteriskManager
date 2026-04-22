@@ -147,11 +147,13 @@ public class AutoUpdateService : BackgroundService
                 sleep 3
                 echo "Applying update..."
                 cp -rf "{updatePath}"/* "{currentPath}"/
-                chmod +x "{currentPath}"/AsteriskManager
+                chmod +x "{currentPath}/AsteriskManager"
+                chmod 644 "{currentPath}"/*.json
+                chmod 644 "{currentPath}"/*.dll
                 rm -rf "{updatePath}"
                 rm -f "{updatePackagePath}"
                 echo "Update applied. Restarting application..."
-                systemctl restart asteriskmanager || "{currentPath}"/AsteriskManager &
+                systemctl restart asteriskmanager
                 rm -f "$0"
                 """;
 
