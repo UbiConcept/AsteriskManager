@@ -1,0 +1,187 @@
+@page "/systemlogs"
+@using AsteriskManager.Services
+@inject AsteriskService Asterisk
+@implements IDisposable
+
+<PageTitle>System Logs (Live)</PageTitle>
+
+<h1>System Logs (Live)</h1>
+
+<div class="mb-3">
+    <button class="btn @(_isAutoRefresh ? "btn-success" : "btn-primary")" @onclick="ToggleAutoRefresh">
+        @if (_isAutoRefresh)
+        {
+            <span>⏸ Pause Auto-Refresh</span>
+        }
+        else
+        {
+            <span>▶ Resume Auto-Refresh</span>
+        }
+    </button>
+    
+    <button class="btn btn-secondary ms-2" @onclick="RefreshNow" disabled="@_isLoading">
+        @if (_isLoading)
+        {
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            <span>Loading...</span>
+        }
+        else
+        {
+            <span>🔄 Refresh Now</span>
+        }
+    </button>
+    
+    <button class="btn btn-outline-secondary ms-2" @onclick="ClearLogs">
+        <span>🗑️ Clear Display</span>
+    </button>
+    
+    <div class="btn-group ms-2" role="group">
+        <input type="radio" class="btn-check" name="lines" id="lines50" checked="@(_lineCount == 50)" @onchange="() => SetLineCount(50)">
+        <label class="btn btn-outline-primary" for="lines50">50 lines</label>
+        
+        <input type="radio" class="btn-check" name="lines" id="lines100" checked="@(_lineCount == 100)" @onchange="() => SetLineCount(100)">
+        <label class="btn btn-outline-primary" for="lines100">100 lines</label>
+        
+        <input type="radio" class="btn-check" name="lines" id="lines200" checked="@(_lineCount == 200)" @onchange="() => SetLineCount(200)">
+        <label class="btn btn-outline-primary" for="lines200">200 lines</label>
+        
+        <input type="radio" class="btn-check" name="lines" id="lines500" checked="@(_lineCount == 500)" @onchange="() => SetLineCount(500)">
+        <label class="btn btn-outline-primary" for="lines500">500 lines</label>
+    </div>
+    
+    <span class="ms-3 text-muted">
+        @if (_isAutoRefresh)
+        {
+            <span>Auto-refreshing every @_refreshInterval seconds</span>
+        }
+        else
+        {
+            <span>Auto-refresh paused</span>
+        }
+    </span>
+    
+    @if (!string.IsNullOrEmpty(_lastUpdate))
+    {
+        <span class="ms-2 text-muted">
+            <small>Last update: @_lastUpdate</small>
+        </span>
+    }
+</div>
+
+<div class="alert alert-info" role="alert">
+    <strong>Info:</strong> This page displays live logs from <code>journalctl -u asteriskmanager</code>. 
+    Logs auto-refresh every @_refreshInterval seconds. Scroll to bottom to see the latest entries.
+</div>
+
+@if (_logs.Count > 0)
+{
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>System Logs (@_logs.Count entries)</span>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="ScrollToBottom">
+                ⬇ Scroll to Bottom
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <pre id="logContent" style="max-height: 600px; overflow-y: auto; margin: 0; padding: 1rem; background-color: #1e1e1e; color: #d4d4d4; font-size: 0.875rem;">@foreach (var log in _logs)
+{<text>@log
+</text>}</pre>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning" role="alert">
+        No logs available. Click "Refresh Now" to load logs.
+    </div>
+}
+
+@code {
+    private List<string> _logs = new();
+    private bool _isAutoRefresh = true;
+    private bool _isLoading = false;
+    private int _lineCount = 100;
+    private int _refreshInterval = 3;
+    private string _lastUpdate = string.Empty;
+    private Timer? _timer;
+    private bool _autoScroll = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshLogs();
+        StartAutoRefresh();
+    }
+
+    private void StartAutoRefresh()
+    {
+        _timer?.Dispose();
+        _timer = new Timer(async _ => 
+        {
+            if (_isAutoRefresh)
+            {
+                await InvokeAsync(async () =>
+                {
+                    await RefreshLogs();
+                    StateHasChanged();
+                });
+            }
+        }, null, TimeSpan.FromSeconds(_refreshInterval), TimeSpan.FromSeconds(_refreshInterval));
+    }
+
+    private void ToggleAutoRefresh()
+    {
+        _isAutoRefresh = !_isAutoRefresh;
+    }
+
+    private async Task RefreshNow()
+    {
+        await RefreshLogs();
+    }
+
+    private async Task RefreshLogs()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var logText = await Asterisk.ReadSystemLogTailAsync(_lineCount);
+            _logs = logText.Split('\n', StringSplitOptions.None).ToList();
+            _lastUpdate = DateTime.Now.ToString("HH:mm:ss");
+        }
+        catch (Exception ex)
+        {
+            _logs = new List<string> { $"Error loading logs: {ex.Message}" };
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+
+        StateHasChanged();
+    }
+
+    private void ClearLogs()
+    {
+        _logs.Clear();
+        _lastUpdate = string.Empty;
+    }
+
+    private void SetLineCount(int count)
+    {
+        _lineCount = count;
+        _ = RefreshLogs();
+    }
+
+    private async Task ScrollToBottom()
+    {
+        // Note: This would require JavaScript interop to actually scroll
+        // For now, just refresh which will show latest logs
+        await RefreshLogs();
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
+}

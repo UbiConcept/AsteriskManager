@@ -11,7 +11,7 @@ A Blazor Server application for managing Asterisk PBX configurations with MQTT i
 - 🌐 **Blazor Server Web Interface** - Modern, responsive web UI for Asterisk management
 - 📞 **PJSIP Extension Management** - Create, edit, and manage SIP extensions
 - 📝 **Configuration Editor** - Direct editing of Asterisk configuration files
-- 📊 **Log Viewer** - Real-time viewing of Asterisk logs
+- 📊 **Log Viewer** - Real-time viewing of Asterisk logs and live system logs
 - 🔧 **Service Management** - Restart Asterisk service from the web interface
 - 📡 **MQTT Integration** - Remote command and control via MQTT
   - Subscribes to: `cmnd/UBI/{MacAddress}/SIPCMD/#`

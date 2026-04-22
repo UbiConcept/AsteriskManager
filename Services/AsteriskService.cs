@@ -122,6 +122,32 @@ public class AsteriskService
         return await TailFileAsync(_settings.MessageLogPath, lines);
     }
 
+    public async Task<string> ReadSystemLogTailAsync(int lines = 100)
+    {
+        try
+        {
+            using var process = new Process();
+            process.StartInfo = new ProcessStartInfo
+            {
+                FileName = "journalctl",
+                Arguments = $"-u asteriskmanager -n {lines} --no-pager",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            process.Start();
+            var output = await process.StandardOutput.ReadToEndAsync();
+            var error = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+            return process.ExitCode == 0 ? output : "Error reading system logs: " + error;
+        }
+        catch (Exception ex)
+        {
+            return "Failed to read system logs: " + ex.Message;
+        }
+    }
+
     private async Task<string> TailFileAsync(string path, int lines)
     {
         if (!File.Exists(path))
