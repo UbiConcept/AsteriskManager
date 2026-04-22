@@ -1,0 +1,141 @@
+@page "/asterisk-restart"
+@using AsteriskManager.Services
+@inject AsteriskService Asterisk
+
+<PageTitle>Restart Asterisk</PageTitle>
+
+<h1>Restart Asterisk Service</h1>
+
+<div class="alert alert-warning" role="alert">
+    <strong>Warning:</strong> Restarting Asterisk will disconnect all active calls and temporarily disrupt phone service.
+</div>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+    <div class="alert @(_isError ? "alert-danger" : "alert-success")" role="alert">
+        <pre>@_message</pre>
+    </div>
+}
+
+<div class="mb-3">
+    <button class="btn btn-danger" @onclick="RestartAsterisk" disabled="@_isRestarting">
+        @if (_isRestarting)
+        {
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            <span>Restarting...</span>
+        }
+        else
+        {
+            <span>Restart Asterisk Service</span>
+        }
+    </button>
+    
+    <button class="btn btn-secondary ms-2" @onclick="CheckStatus" disabled="@_isChecking">
+        @if (_isChecking)
+        {
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            <span>Checking...</span>
+        }
+        else
+        {
+            <span>Check Service Status</span>
+        }
+    </button>
+</div>
+
+@if (!string.IsNullOrEmpty(_statusMessage))
+{
+    <div class="card mt-3">
+        <div class="card-header">
+            Service Status
+        </div>
+        <div class="card-body">
+            <pre>@_statusMessage</pre>
+        </div>
+    </div>
+}
+
+<div class="mt-4">
+    <h5>About Asterisk Restart</h5>
+    <p>This action will:</p>
+    <ul>
+        <li>Stop the Asterisk service</li>
+        <li>Disconnect all active calls</li>
+        <li>Reload all configurations</li>
+        <li>Restart the Asterisk service</li>
+    </ul>
+    <p><strong>Note:</strong> This may take a few seconds. Phone service will be restored once Asterisk has fully restarted.</p>
+</div>
+
+@code {
+    private string _message = string.Empty;
+    private string _statusMessage = string.Empty;
+    private bool _isError = false;
+    private bool _isRestarting = false;
+    private bool _isChecking = false;
+
+    private async Task RestartAsterisk()
+    {
+        _isRestarting = true;
+        _message = string.Empty;
+        _isError = false;
+        StateHasChanged();
+
+        try
+        {
+            var result = await Asterisk.RestartAsteriskAsync();
+            _message = result;
+            _isError = result.Contains("Error") || result.Contains("Failed");
+            
+            // Wait a moment then check status
+            await Task.Delay(2000);
+            await CheckStatus();
+        }
+        catch (Exception ex)
+        {
+            _message = "Exception: " + ex.Message;
+            _isError = true;
+        }
+        finally
+        {
+            _isRestarting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CheckStatus()
+    {
+        _isChecking = true;
+        _statusMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            var process = new System.Diagnostics.Process();
+            process.StartInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "systemctl",
+                Arguments = "status asterisk",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            process.Start();
+            var output = await process.StandardOutput.ReadToEndAsync();
+            var error = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+            
+            _statusMessage = !string.IsNullOrEmpty(output) ? output : error;
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = "Failed to check status: " + ex.Message;
+        }
+        finally
+        {
+            _isChecking = false;
+            StateHasChanged();
+        }
+    }
+}

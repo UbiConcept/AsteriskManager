@@ -52,6 +52,40 @@ public class AsteriskService
         return await RunAsteriskCommandAsync("pjsip reload");
     }
 
+    public async Task<string> RestartAsteriskAsync()
+    {
+        try
+        {
+            using var process = new Process();
+            process.StartInfo = new ProcessStartInfo
+            {
+                FileName = "systemctl",
+                Arguments = "restart asterisk",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            process.Start();
+            var output = await process.StandardOutput.ReadToEndAsync();
+            var error = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            if (process.ExitCode == 0)
+            {
+                return "Asterisk service restart initiated successfully.";
+            }
+            else
+            {
+                return "Error restarting Asterisk service.\n" + error;
+            }
+        }
+        catch (Exception ex)
+        {
+            return "Failed to restart Asterisk service: " + ex.Message;
+        }
+    }
+
     private async Task<string> RunAsteriskCommandAsync(string command)
     {
         try

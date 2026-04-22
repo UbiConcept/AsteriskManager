@@ -1,4 +1,6 @@
 using System.Net.NetworkInformation;
+using System.Reflection;
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 using MQTTnet;
 
@@ -156,6 +158,65 @@ public class MqttService : BackgroundService
                 _logger.LogError(ex, "Error triggering software update from MQTT command");
             }
         }
+        // Check if this is an EXTENSION command
+        else if (topic.EndsWith("/SIPCMD/EXTENSION", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation("Received EXTENSION command via MQTT. Processing extension data...");
+
+            try
+            {
+                // Parse the JSON payload
+                var extensionData = JsonSerializer.Deserialize<PjsipExtension>(payload, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (extensionData == null || string.IsNullOrWhiteSpace(extensionData.Name))
+                {
+                    _logger.LogWarning("Invalid extension data received. Extension name is required.");
+                    return;
+                }
+
+                // Get the PjsipManagementService from the service provider
+                using var scope = _serviceProvider.CreateScope();
+                var pjsipService = scope.ServiceProvider.GetRequiredService<PjsipManagementService>();
+
+                // Parse current configuration
+                var config = await pjsipService.ParseAsync();
+
+                // Check if extension exists
+                var existingExtension = pjsipService.FindExtension(config, extensionData.Name);
+
+                if (existingExtension != null)
+                {
+                    _logger.LogInformation("Modifying existing extension: {ExtensionName}", extensionData.Name);
+                    pjsipService.RemoveExtension(config, extensionData.Name);
+                }
+                else
+                {
+                    _logger.LogInformation("Adding new extension: {ExtensionName}", extensionData.Name);
+                }
+
+                // Add the extension
+                pjsipService.AddExtension(config, extensionData);
+
+                // Save configuration
+                await pjsipService.SaveAsync(config);
+
+                // Reload PJSIP
+                var reloadResult = await pjsipService.ReloadAsync();
+                _logger.LogInformation("Extension {ExtensionName} processed successfully. Reload result: {Result}", 
+                    extensionData.Name, reloadResult);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Error parsing extension JSON payload: {Payload}", payload);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing extension command");
+            }
+        }
         else
         {
             _logger.LogInformation("Received command on topic {Topic} with payload: {Payload}", topic, payload);
@@ -173,7 +234,9 @@ public class MqttService : BackgroundService
         try
         {
             var topic = $"tele/UBI/{_macAddress}/HEARTBEAT";
-            var payload = DateTime.UtcNow.ToString("o");
+            var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown";
+            var timestamp = DateTime.UtcNow.ToString("o");
+            var payload = $"{{\"timestamp\":\"{timestamp}\",\"version\":\"{version}\"}}";
 
             var message = new MqttApplicationMessageBuilder()
                 .WithTopic(topic)
@@ -182,7 +245,7 @@ public class MqttService : BackgroundService
 
             await _mqttClient.PublishAsync(message, cancellationToken);
 
-            _logger.LogDebug("Heartbeat sent to {Topic}", topic);
+            _logger.LogDebug("Heartbeat sent to {Topic} with version {Version}", topic, version);
         }
         catch (Exception ex)
         {

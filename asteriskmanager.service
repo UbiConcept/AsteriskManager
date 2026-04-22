@@ -3,7 +3,7 @@ Description=Asterisk Manager Service
 After=network.target
 
 [Service]
-Type=notify
+Type=simple
 WorkingDirectory=/opt/asteriskmanager
 ExecStart=/opt/asteriskmanager/AsteriskManager
 Restart=always

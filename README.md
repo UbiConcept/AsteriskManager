@@ -4,7 +4,7 @@ A Blazor Server application for managing Asterisk PBX configurations with MQTT i
 
 ## Version
 
-**Current Version:** 1.0.0
+**Current Version:** 1.0.2
 
 ## Features
 
@@ -12,10 +12,12 @@ A Blazor Server application for managing Asterisk PBX configurations with MQTT i
 - 📞 **PJSIP Extension Management** - Create, edit, and manage SIP extensions
 - 📝 **Configuration Editor** - Direct editing of Asterisk configuration files
 - 📊 **Log Viewer** - Real-time viewing of Asterisk logs
+- 🔧 **Service Management** - Restart Asterisk service from the web interface
 - 📡 **MQTT Integration** - Remote command and control via MQTT
   - Subscribes to: `cmnd/UBI/{MacAddress}/SIPCMD/#`
-  - Heartbeat: `tele/UBI/{MacAddress}/HEARTBEAT` (every 60 seconds)
+  - Heartbeat: `tele/UBI/{MacAddress}/HEARTBEAT` (every 60 seconds with version info)
   - **Remote Updates**: Trigger software updates via MQTT command (see [MQTT-UPDATE.md](MQTT-UPDATE.md))
+  - **Remote Extension Management**: Add/modify extensions via MQTT (see [MQTT-EXTENSION.md](MQTT-EXTENSION.md))
 - 🔄 **Auto-Update** - Automatic updates from ubiconcept.com
 - 📶 **WiFi Management** - Configure wireless network settings
 - 🚀 **Systemd Integration** - Auto-start on Linux boot

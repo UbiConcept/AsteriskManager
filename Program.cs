@@ -3,6 +3,9 @@ using AsteriskManager.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure to listen on all network interfaces
+builder.WebHost.UseUrls("http://0.0.0.0:5000");
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
