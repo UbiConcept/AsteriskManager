@@ -50,8 +50,8 @@ The payload must be a JSON object containing the extension properties:
 
 ```bash
 mosquitto_pub -h mqtt.jsmplus.com -p 4546 \
-  -u "1C:54:E6:30:57:D0" -P "UBIPASS" \
-  -t "cmnd/UBI/1C:54:E6:30:57:D0/SIPCMD/EXTENSION" \
+  -u "1C54E630570D" -P "UBIPASS" \
+  -t "cmnd/UBI/1C54E630570D/SIPCMD/EXTENSION" \
   -m '{
     "Name": "100",
     "Password": "secret123",
@@ -63,8 +63,8 @@ mosquitto_pub -h mqtt.jsmplus.com -p 4546 \
 
 ```bash
 mosquitto_pub -h mqtt.jsmplus.com -p 4546 \
-  -u "1C:54:E6:30:57:D0" -P "UBIPASS" \
-  -t "cmnd/UBI/1C:54:E6:30:57:D0/SIPCMD/EXTENSION" \
+  -u "1C54E630570D" -P "UBIPASS" \
+  -t "cmnd/UBI/1C54E630570D/SIPCMD/EXTENSION" \
   -m '{
     "Name": "101",
     "Password": "mypassword",
@@ -80,8 +80,8 @@ To modify an extension, send the same command with the same `Name` but different
 
 ```bash
 mosquitto_pub -h mqtt.jsmplus.com -p 4546 \
-  -u "1C:54:E6:30:57:D0" -P "UBIPASS" \
-  -t "cmnd/UBI/1C:54:E6:30:57:D0/SIPCMD/EXTENSION" \
+  -u "1C54E630570D" -P "UBIPASS" \
+  -t "cmnd/UBI/1C54E630570D/SIPCMD/EXTENSION" \
   -m '{
     "Name": "100",
     "Password": "newsecret456",
@@ -93,8 +93,8 @@ mosquitto_pub -h mqtt.jsmplus.com -p 4546 \
 
 ```bash
 mosquitto_pub -h mqtt.jsmplus.com -p 4546 \
-  -u "1C:54:E6:30:57:D0" -P "UBIPASS" \
-  -t "cmnd/UBI/1C:54:E6:30:57:D0/SIPCMD/EXTENSION" \
+  -u "1C54E630570D" -P "UBIPASS" \
+  -t "cmnd/UBI/1C54E630570D/SIPCMD/EXTENSION" \
   -m '{
     "Name": "102",
     "Password": "pass102",
@@ -216,7 +216,7 @@ extension = {
 # MQTT configuration
 broker = "mqtt.jsmplus.com"
 port = 4546
-mac_address = "1C:54:E6:30:57:D0"
+mac_address = "1C54E630570D"
 password = "UBIPASS"
 
 # Create client and publish

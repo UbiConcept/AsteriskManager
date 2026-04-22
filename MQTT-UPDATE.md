@@ -24,8 +24,8 @@ mosquitto_pub -h mqtt.jsmplus.com -p 4546 -u {MacAddress} -P UBIPASS \
 
 **Example with actual MAC address:**
 ```bash
-mosquitto_pub -h mqtt.jsmplus.com -p 4546 -u 1C:54:E6:30:57:D0 -P UBIPASS \
-  -t "cmnd/UBI/1C:54:E6:30:57:D0/SIPCMD/UPDATE" -m "update"
+mosquitto_pub -h mqtt.jsmplus.com -p 4546 -u 1C54E630570D -P UBIPASS \
+  -t "cmnd/UBI/1C54E630570D/SIPCMD/UPDATE" -m "update"
 ```
 
 ## Update Process

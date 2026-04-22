@@ -269,8 +269,8 @@ public class MqttService : BackgroundService
         if (string.IsNullOrEmpty(mac))
             return null;
 
-        return string.Join(":", Enumerable.Range(0, mac.Length / 2)
-            .Select(i => mac.Substring(i * 2, 2)));
+        // Return MAC address without colons
+        return mac;
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)
