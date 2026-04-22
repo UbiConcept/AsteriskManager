@@ -84,9 +84,7 @@
             </button>
         </div>
         <div class="card-body p-0">
-            <pre id="logContent" style="max-height: 600px; overflow-y: auto; margin: 0; padding: 1rem; background-color: #1e1e1e; color: #d4d4d4; font-size: 0.875rem;">@foreach (var log in _logs)
-{<text>@log
-</text>}</pre>
+            <pre id="logContent" style="max-height: 600px; overflow-y: auto; margin: 0; padding: 1rem; background-color: #1e1e1e; color: #d4d4d4; font-size: 0.875rem; white-space: pre-wrap;">@string.Join("\n", _logs)</pre>
         </div>
     </div>
 }
