@@ -177,7 +177,15 @@ This script stops the service, uploads files, extracts them, sets proper permiss
 
 ## Version History
 
-### v1.0.11 (Latest)
+### v1.0.12 (Latest)
+- **Automatic dialplan management**: Extensions are now automatically added to extensions.conf
+- When adding an extension, a dialplan entry is created in [from-internal] context
+- Format: `exten => {extension},1,Dial(PJSIP/{extension},20)` with Hangup()
+- Works for both web UI and MQTT-triggered extension additions
+- Automatic cleanup when extensions are deleted
+- Created ExtensionsConfManagementService for dialplan management
+
+### v1.0.11
 - Fixed TestUpdate page service injection error
 - Application now properly retrieves AutoUpdateService from hosted services
 - Improved error handling for manual update triggers
