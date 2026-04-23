@@ -1,7 +1,7 @@
 @page "/testupdate"
 @rendermode InteractiveServer
 @using AsteriskManager.Services
-@inject AutoUpdateService AutoUpdate
+@inject IServiceProvider ServiceProvider
 @inject ILogger<TestUpdate> Logger
 
 <PageTitle>Test Update</PageTitle>
@@ -48,20 +48,22 @@
         try
         {
             Logger.LogInformation("Manual update triggered from UI");
-            
-            // Call the internal method through reflection since it's private
-            var method = typeof(AutoUpdateService).GetMethod("CheckAndApplyUpdateAsync", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            
-            if (method != null)
+
+            // Get the AutoUpdateService from hosted services
+            var hostedServices = ServiceProvider.GetServices<IHostedService>();
+            var autoUpdateService = hostedServices.OfType<AutoUpdateService>().FirstOrDefault();
+
+            if (autoUpdateService != null)
             {
-                var task = method.Invoke(AutoUpdate, new object[] { CancellationToken.None }) as Task;
-                if (task != null)
-                {
-                    await task;
-                    message = "Update process completed. If an update was available, the application will restart.";
-                    alertClass = "success";
-                }
+                await autoUpdateService.CheckAndApplyUpdateAsync();
+                message = "Update process completed. If an update was available, the application will restart.";
+                alertClass = "success";
+            }
+            else
+            {
+                message = "AutoUpdateService not found";
+                alertClass = "danger";
+                Logger.LogError("AutoUpdateService not found in hosted services");
             }
         }
         catch (Exception ex)

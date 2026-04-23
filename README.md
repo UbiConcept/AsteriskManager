@@ -4,7 +4,7 @@ A Blazor Server application for managing Asterisk PBX configurations with MQTT i
 
 ## Version
 
-**Current Version:** 1.0.10
+**Current Version:** 1.0.11
 
 ## Features
 
