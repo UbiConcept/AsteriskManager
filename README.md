@@ -149,9 +149,71 @@ For issues:
 2. Verify network connectivity to MQTT broker
 3. Ensure proper permissions on Asterisk configuration files
 
+### Common Issues
+
+#### Service fails to start with "Permission denied"
+
+If the service fails to start with:
+```
+Failed at step EXEC spawning /opt/asteriskmanager/AsteriskManager: Permission denied
+```
+
+This means the executable flag is missing. Fix it with:
+```bash
+sudo chmod +x /opt/asteriskmanager/AsteriskManager
+sudo systemctl restart asteriskmanager
+```
+
+**Note**: This can happen when deploying manually with tar from Windows, as tar doesn't preserve Unix execute permissions. The auto-update mechanism handles this automatically.
+
+#### Using quick-deploy.ps1
+
+For manual deployments from Windows, use the included `quick-deploy.ps1` script which automatically sets correct permissions:
+```powershell
+.\quick-deploy.ps1
+```
+
+This script stops the service, uploads files, extracts them, sets proper permissions, and restarts the service.
+
 ## Version History
 
-### v1.0.1 (Latest)
+### v1.0.11 (Latest)
+- Fixed TestUpdate page service injection error
+- Application now properly retrieves AutoUpdateService from hosted services
+- Improved error handling for manual update triggers
+
+### v1.0.10
+- Added log level toggle button to SystemLogs page
+- Created LogLevelService for dynamic log level management
+- Added 10-second startup delay for MQTT service to allow network to settle
+- Added local IP address to HEARTBEAT message payload
+- Improved production troubleshooting capabilities
+
+### v1.0.9
+- Fixed log display formatting - added line breaks between log entries
+- Improved log readability with white-space preservation
+
+### v1.0.8
+- Fixed interactive features in SystemLogs, TestUpdate, and AsteriskRestart pages
+- Added @rendermode InteractiveServer directive for proper state management
+
+### v1.0.7
+- Changed application port from 5000 to 8080
+- Updated documentation for new port
+- Verified auto-start on reboot functionality
+
+### v1.0.6
+- Added TestUpdate page for manual update testing via web UI
+
+### v1.0.5
+- Fixed update script file permissions
+- Improved update.sh with explicit chmod +x commands
+
+### v1.0.4
+- Fixed critical auto-update bug with Unix line endings
+- Changed from Windows CRLF to Unix LF for bash scripts
+
+### v1.0.1
 - MQTT-triggered software updates
 - Remote update via `cmnd/UBI/{MacAddress}/SIPCMD/UPDATE` topic
 - Enhanced logging for update operations
