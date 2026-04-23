@@ -11,8 +11,14 @@ plink -batch -pw $Password "$Username@$DeviceIp" "sudo systemctl stop asteriskma
 Write-Host "Uploading files..." -ForegroundColor Yellow
 pscp -batch -pw $Password publish.tar.gz "$Username@${DeviceIp}:/tmp/"
 
-Write-Host "Extracting and setting permissions..." -ForegroundColor Yellow
-plink -batch -pw $Password "$Username@$DeviceIp" "sudo tar -xzf /tmp/publish.tar.gz -C /opt/asteriskmanager/ && sudo chmod +x /opt/asteriskmanager/AsteriskManager && sudo rm /tmp/publish.tar.gz"
+Write-Host "Extracting files..." -ForegroundColor Yellow
+plink -batch -pw $Password "$Username@$DeviceIp" "sudo tar -xzf /tmp/publish.tar.gz -C /opt/asteriskmanager/"
+
+Write-Host "Setting permissions..." -ForegroundColor Yellow
+plink -batch -pw $Password "$Username@$DeviceIp" "sudo chmod +x /opt/asteriskmanager/AsteriskManager"
+
+Write-Host "Cleaning up..." -ForegroundColor Yellow
+plink -batch -pw $Password "$Username@$DeviceIp" "sudo rm /tmp/publish.tar.gz"
 
 Write-Host "Starting service..." -ForegroundColor Yellow
 plink -batch -pw $Password "$Username@$DeviceIp" "sudo systemctl start asteriskmanager"
