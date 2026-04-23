@@ -24,6 +24,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<AsteriskService>();
 builder.Services.AddScoped<WifiService>();
 builder.Services.AddScoped<PjsipManagementService>();
+builder.Services.AddScoped<LogLevelService>();
 builder.Services.AddHostedService<MqttService>();
 builder.Services.AddHostedService<AutoUpdateService>();
 

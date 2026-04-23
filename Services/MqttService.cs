@@ -1,4 +1,6 @@
+using System.Net;
 using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
@@ -26,6 +28,10 @@ public class MqttService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Add startup delay to allow network to settle
+        _logger.LogInformation("Waiting 10 seconds for network to settle before starting MQTT service...");
+        await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+
         _macAddress = GetMacAddress();
 
         if (string.IsNullOrEmpty(_macAddress))
@@ -236,7 +242,8 @@ public class MqttService : BackgroundService
             var topic = $"tele/UBI/{_macAddress}/HEARTBEAT";
             var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown";
             var timestamp = DateTime.UtcNow.ToString("o");
-            var payload = $"{{\"timestamp\":\"{timestamp}\",\"version\":\"{version}\"}}";
+            var localIp = GetLocalIpAddress();
+            var payload = $"{{\"timestamp\":\"{timestamp}\",\"version\":\"{version}\",\"localIp\":\"{localIp}\"}}";
 
             var message = new MqttApplicationMessageBuilder()
                 .WithTopic(topic)
@@ -245,7 +252,7 @@ public class MqttService : BackgroundService
 
             await _mqttClient.PublishAsync(message, cancellationToken);
 
-            _logger.LogDebug("Heartbeat sent to {Topic} with version {Version}", topic, version);
+            _logger.LogDebug("Heartbeat sent to {Topic} with version {Version} and IP {LocalIp}", topic, version, localIp);
         }
         catch (Exception ex)
         {
@@ -271,6 +278,51 @@ public class MqttService : BackgroundService
 
         // Return MAC address without colons
         return mac;
+    }
+
+    private static string GetLocalIpAddress()
+    {
+        try
+        {
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (var ip in host.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(ip))
+                {
+                    return ip.ToString();
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Fallback method using NetworkInterface
+            try
+            {
+                var nics = NetworkInterface.GetAllNetworkInterfaces()
+                    .Where(n => n.OperationalStatus == OperationalStatus.Up
+                             && n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+                    .ToList();
+
+                foreach (var nic in nics)
+                {
+                    var ipProps = nic.GetIPProperties();
+                    var ipAddress = ipProps.UnicastAddresses
+                        .FirstOrDefault(a => a.Address.AddressFamily == AddressFamily.InterNetwork
+                                          && !IPAddress.IsLoopback(a.Address));
+
+                    if (ipAddress != null)
+                    {
+                        return ipAddress.Address.ToString();
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore fallback errors
+            }
+        }
+
+        return "Unknown";
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)

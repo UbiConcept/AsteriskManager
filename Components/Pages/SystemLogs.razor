@@ -2,6 +2,8 @@
 @rendermode InteractiveServer
 @using AsteriskManager.Services
 @inject AsteriskService Asterisk
+@inject LogLevelService LogLevel
+@inject ILogger<SystemLogs> Logger
 @implements IDisposable
 
 <PageTitle>System Logs (Live)</PageTitle>
@@ -35,7 +37,19 @@
     <button class="btn btn-outline-secondary ms-2" @onclick="ClearLogs">
         <span>🗑️ Clear Display</span>
     </button>
-    
+
+    <button class="btn @(_currentLogLevel == "Debug" ? "btn-warning" : "btn-info") ms-2" @onclick="ToggleLogLevel" disabled="@_isChangingLogLevel">
+        @if (_isChangingLogLevel)
+        {
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            <span>Changing...</span>
+        }
+        else
+        {
+            <span>📊 Log Level: @_currentLogLevel</span>
+        }
+    </button>
+
     <div class="btn-group ms-2" role="group">
         <input type="radio" class="btn-check" name="lines" id="lines50" checked="@(_lineCount == 50)" @onchange="() => SetLineCount(50)">
         <label class="btn btn-outline-primary" for="lines50">50 lines</label>
@@ -71,7 +85,10 @@
 
 <div class="alert alert-info" role="alert">
     <strong>Info:</strong> This page displays live logs from <code>journalctl -u asteriskmanager</code>. 
-    Logs auto-refresh every @_refreshInterval seconds. Scroll to bottom to see the latest entries.
+    Logs auto-refresh every @_refreshInterval seconds. 
+    <br/>
+    <strong>Log Level:</strong> Currently set to <span class="badge bg-@(_currentLogLevel == "Debug" ? "warning" : "info")">@_currentLogLevel</span>. 
+    Click the "Log Level" button to toggle between Debug and Information levels. Changes are written to appsettings.json.
 </div>
 
 @if (_logs.Count > 0)
@@ -99,6 +116,8 @@ else
     private List<string> _logs = new();
     private bool _isAutoRefresh = true;
     private bool _isLoading = false;
+    private bool _isChangingLogLevel = false;
+    private string _currentLogLevel = "Debug";
     private int _lineCount = 100;
     private int _refreshInterval = 3;
     private string _lastUpdate = string.Empty;
@@ -107,6 +126,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        _currentLogLevel = LogLevel.GetCurrentLogLevel();
         await RefreshLogs();
         StartAutoRefresh();
     }
@@ -177,6 +197,47 @@ else
         // Note: This would require JavaScript interop to actually scroll
         // For now, just refresh which will show latest logs
         await RefreshLogs();
+    }
+
+    private async Task ToggleLogLevel()
+    {
+        _isChangingLogLevel = true;
+        StateHasChanged();
+
+        try
+        {
+            // Toggle between Debug and Information
+            var newLevel = _currentLogLevel == "Debug" ? "Information" : "Debug";
+
+            var success = await LogLevel.SetLogLevelAsync(newLevel);
+
+            if (success)
+            {
+                _currentLogLevel = newLevel;
+                Logger.LogInformation("Log level changed to {LogLevel}. Note: Application restart may be required for full effect.", newLevel);
+
+                // Add a message to logs
+                _logs.Insert(0, $"[{DateTime.Now:HH:mm:ss}] Log level changed to {newLevel}. Some changes may require application restart.");
+
+                // Show alert message
+                await Task.Delay(100); // Brief delay to show the change
+            }
+            else
+            {
+                Logger.LogError("Failed to change log level");
+                _logs.Insert(0, $"[{DateTime.Now:HH:mm:ss}] ERROR: Failed to change log level");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error toggling log level");
+            _logs.Insert(0, $"[{DateTime.Now:HH:mm:ss}] ERROR: {ex.Message}");
+        }
+        finally
+        {
+            _isChangingLogLevel = false;
+            StateHasChanged();
+        }
     }
 
     public void Dispose()
