@@ -12,11 +12,7 @@ Write-Host "Uploading files..." -ForegroundColor Yellow
 pscp -batch -pw $Password publish.tar.gz "$Username@${DeviceIp}:/tmp/"
 
 Write-Host "Extracting and setting permissions..." -ForegroundColor Yellow
-plink -batch -pw $Password "$Username@$DeviceIp" @"
-sudo tar -xzf /tmp/publish.tar.gz -C /opt/asteriskmanager/ && \
-sudo chmod +x /opt/asteriskmanager/AsteriskManager && \
-sudo rm /tmp/publish.tar.gz
-"@
+plink -batch -pw $Password "$Username@$DeviceIp" "sudo tar -xzf /tmp/publish.tar.gz -C /opt/asteriskmanager/ && sudo chmod +x /opt/asteriskmanager/AsteriskManager && sudo rm /tmp/publish.tar.gz"
 
 Write-Host "Starting service..." -ForegroundColor Yellow
 plink -batch -pw $Password "$Username@$DeviceIp" "sudo systemctl start asteriskmanager"

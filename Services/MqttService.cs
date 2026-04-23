@@ -186,6 +186,7 @@ public class MqttService : BackgroundService
                 // Get the PjsipManagementService from the service provider
                 using var scope = _serviceProvider.CreateScope();
                 var pjsipService = scope.ServiceProvider.GetRequiredService<PjsipManagementService>();
+                var extConfService = scope.ServiceProvider.GetRequiredService<ExtensionsConfManagementService>();
 
                 // Parse current configuration
                 var config = await pjsipService.ParseAsync();
@@ -209,9 +210,12 @@ public class MqttService : BackgroundService
                 // Save configuration
                 await pjsipService.SaveAsync(config);
 
+                // Add to extensions.conf
+                await extConfService.AddOrUpdateExtensionAsync(extensionData.Name);
+
                 // Reload PJSIP
                 var reloadResult = await pjsipService.ReloadAsync();
-                _logger.LogInformation("Extension {ExtensionName} processed successfully. Reload result: {Result}", 
+                _logger.LogInformation("Extension {ExtensionName} processed successfully in pjsip.conf and extensions.conf. Reload result: {Result}", 
                     extensionData.Name, reloadResult);
             }
             catch (JsonException ex)

@@ -1,6 +1,7 @@
 @page "/extensions-list"
 @using AsteriskManager.Services
 @inject PjsipManagementService PjsipMgr
+@inject ExtensionsConfManagementService ExtConfMgr
 @inject NavigationManager Nav
 @rendermode InteractiveServer
 
@@ -114,7 +115,11 @@
         {
             await PjsipMgr.SaveAsync(_data);
             await PjsipMgr.ReloadAsync();
-            _statusMessage = "Extension " + _newName + " added and PJSIP reloaded.";
+
+            // Add extension to extensions.conf
+            await ExtConfMgr.AddOrUpdateExtensionAsync(_newName);
+
+            _statusMessage = "Extension " + _newName + " added to pjsip.conf and extensions.conf, PJSIP reloaded.";
             _isError = false;
             _newName = string.Empty;
             _newPassword = string.Empty;
@@ -132,7 +137,11 @@
         {
             await PjsipMgr.SaveAsync(_data);
             await PjsipMgr.ReloadAsync();
-            _statusMessage = "Extension " + name + " deleted and PJSIP reloaded.";
+
+            // Remove extension from extensions.conf
+            await ExtConfMgr.RemoveExtensionAsync(name);
+
+            _statusMessage = "Extension " + name + " deleted from pjsip.conf and extensions.conf, PJSIP reloaded.";
             _isError = false;
         }
         catch (Exception ex) { _statusMessage = ex.Message; _isError = true; }
