@@ -177,7 +177,14 @@ This script stops the service, uploads files, extracts them, sets proper permiss
 
 ## Version History
 
-### v1.0.12 (Latest)
+### v1.0.13 (Latest)
+- **Improved UI layout**: Made extension editor and PJSIP editor much wider
+- Changed from constrained layout to full-width fluid container
+- Extension editor now uses col-lg-2/10 (was col-md-3/9) for better space utilization
+- PJSIP text editor now spans full available width
+- Better use of screen real estate on large displays
+
+### v1.0.12
 - **Automatic dialplan management**: Extensions are now automatically added to extensions.conf
 - When adding an extension, a dialplan entry is created in [from-internal] context
 - Format: `exten => {extension},1,Dial(PJSIP/{extension},20)` with Hangup()
