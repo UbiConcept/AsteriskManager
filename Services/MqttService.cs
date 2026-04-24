@@ -164,6 +164,29 @@ public class MqttService : BackgroundService
                 _logger.LogError(ex, "Error triggering software update from MQTT command");
             }
         }
+        // Check if this is a REMOTEPORT command
+        else if (topic.EndsWith("/SIPCMD/REMOTEPORT", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation("Received REMOTEPORT command via MQTT. Payload: {Payload}", payload);
+
+            try
+            {
+                if (int.TryParse(payload.Trim(), out var port))
+                {
+                    var autoSshService = _serviceProvider.GetRequiredService<AutoSshService>();
+                    await autoSshService.SetRemotePortAsync(port);
+                    _logger.LogInformation("Remote port set to {Port} for autossh", port);
+                }
+                else
+                {
+                    _logger.LogWarning("Invalid port number received: {Payload}", payload);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing REMOTEPORT command");
+            }
+        }
         // Check if this is an EXTENSION command
         else if (topic.EndsWith("/SIPCMD/EXTENSION", StringComparison.OrdinalIgnoreCase))
         {
