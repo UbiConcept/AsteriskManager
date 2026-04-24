@@ -26,6 +26,8 @@ builder.Services.AddScoped<WifiService>();
 builder.Services.AddScoped<PjsipManagementService>();
 builder.Services.AddScoped<ExtensionsConfManagementService>();
 builder.Services.AddScoped<LogLevelService>();
+builder.Services.AddSingleton<SshKeyManagementService>();
+builder.Services.AddHostedService<SshKeyManagementService>(sp => sp.GetRequiredService<SshKeyManagementService>());
 builder.Services.AddHostedService<MqttService>();
 builder.Services.AddHostedService<AutoUpdateService>();
 
