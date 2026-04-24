@@ -5,12 +5,16 @@ namespace AsteriskManager.Services;
 public class SshKeyManagementService : IHostedService
 {
     private readonly ILogger<SshKeyManagementService> _logger;
+    private readonly IServiceProvider _serviceProvider;
     private readonly string _sshKeyPath;
     private readonly string _sshDirectory;
 
-    public SshKeyManagementService(ILogger<SshKeyManagementService> logger)
+    public SshKeyManagementService(
+        ILogger<SshKeyManagementService> logger,
+        IServiceProvider serviceProvider)
     {
         _logger = logger;
+        _serviceProvider = serviceProvider;
 
         var appPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
         _sshDirectory = Path.Combine(appPath!, "ssh");
@@ -53,6 +57,9 @@ public class SshKeyManagementService : IHostedService
             {
                 var publicKey = await File.ReadAllTextAsync($"{_sshKeyPath}.pub", cancellationToken);
                 _logger.LogInformation("SSH Public Key:\n{PublicKey}", publicKey.Trim());
+
+                // Publish public key via MQTT
+                _ = Task.Run(async () => await PublishPublicKeyAsync(publicKey.Trim()), cancellationToken);
             }
         }
         catch (Exception ex)
@@ -187,4 +194,42 @@ public class SshKeyManagementService : IHostedService
     {
         return _sshDirectory;
     }
+
+    private async Task PublishPublicKeyAsync(string publicKey)
+    {
+        try
+        {
+            // Wait for MQTT service to be ready (it has a 10-second startup delay)
+            await Task.Delay(TimeSpan.FromSeconds(15));
+
+            var mqttService = _serviceProvider.GetServices<IHostedService>()
+                .OfType<MqttService>()
+                .FirstOrDefault();
+
+            if (mqttService == null)
+            {
+                _logger.LogWarning("MqttService not found. Cannot publish SSH public key.");
+                return;
+            }
+
+            var macAddress = mqttService.GetMacAddressValue();
+
+            if (string.IsNullOrEmpty(macAddress))
+            {
+                _logger.LogWarning("MAC address not available. Cannot publish SSH public key.");
+                return;
+            }
+
+            var topic = $"tele/UBI/{macAddress}/PUBLICKEY";
+
+            _logger.LogInformation("Publishing SSH public key to MQTT topic: {Topic}", topic);
+            await mqttService.PublishMessageAsync(topic, publicKey);
+            _logger.LogInformation("SSH public key published successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to publish SSH public key via MQTT");
+        }
+    }
 }
+

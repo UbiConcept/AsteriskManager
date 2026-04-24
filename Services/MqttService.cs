@@ -342,4 +342,33 @@ public class MqttService : BackgroundService
 
         await base.StopAsync(cancellationToken);
     }
+
+    public string? GetMacAddressValue()
+    {
+        return _macAddress;
+    }
+
+    public async Task PublishMessageAsync(string topic, string payload, CancellationToken cancellationToken = default)
+    {
+        if (_mqttClient?.IsConnected != true)
+        {
+            _logger.LogWarning("Cannot publish message - MQTT client is not connected");
+            return;
+        }
+
+        try
+        {
+            var message = new MqttApplicationMessageBuilder()
+                .WithTopic(topic)
+                .WithPayload(payload)
+                .Build();
+
+            await _mqttClient.PublishAsync(message, cancellationToken);
+            _logger.LogInformation("Published message to topic: {Topic}", topic);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to publish message to topic: {Topic}", topic);
+        }
+    }
 }
