@@ -5,6 +5,9 @@ $DeviceIp = "192.168.18.39"
 $Username = "linaro"
 $Password = "linaro"
 
+Write-Host "Cleaning /tmp/ directory..." -ForegroundColor Yellow
+plink -batch -pw $Password "$Username@$DeviceIp" "sudo rm -rf /tmp/publish.tar.gz /tmp/update*.zip /tmp/update_*"
+
 Write-Host "Stopping service..." -ForegroundColor Yellow
 plink -batch -pw $Password "$Username@$DeviceIp" "sudo systemctl stop asteriskmanager"
 
@@ -16,6 +19,9 @@ plink -batch -pw $Password "$Username@$DeviceIp" "sudo tar -xzf /tmp/publish.tar
 
 Write-Host "Setting permissions..." -ForegroundColor Yellow
 plink -batch -pw $Password "$Username@$DeviceIp" "sudo chmod +x /opt/asteriskmanager/AsteriskManager"
+
+Write-Host "Verifying permissions..." -ForegroundColor Yellow
+plink -batch -pw $Password "$Username@$DeviceIp" "ls -la /opt/asteriskmanager/AsteriskManager"
 
 Write-Host "Cleaning up..." -ForegroundColor Yellow
 plink -batch -pw $Password "$Username@$DeviceIp" "sudo rm /tmp/publish.tar.gz"

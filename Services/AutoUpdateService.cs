@@ -144,14 +144,21 @@ public class AutoUpdateService : BackgroundService
 
             var scriptContent = $"""
                 #!/bin/bash
+                echo "Cleaning /tmp/ directory..."
+                rm -rf /tmp/update*.zip /tmp/update_* /tmp/publish.tar.gz 2>/dev/null || true
                 sleep 3
                 echo "Applying update..."
                 cp -rf "{updatePath}"/* "{currentPath}"/
+                echo "Setting executable permissions..."
                 chmod +x "{currentPath}/AsteriskManager"
-                chmod 644 "{currentPath}"/*.json
-                chmod 644 "{currentPath}"/*.dll
+                echo "Setting file permissions..."
+                chmod 644 "{currentPath}"/*.json 2>/dev/null || true
+                chmod 644 "{currentPath}"/*.dll 2>/dev/null || true
+                echo "Cleaning up temporary files..."
                 rm -rf "{updatePath}"
                 rm -f "{updatePackagePath}"
+                echo "Verifying executable permission..."
+                ls -la "{currentPath}/AsteriskManager" | grep -q "x" && echo "Execute permission confirmed" || echo "WARNING: Execute permission not set!"
                 echo "Update applied. Restarting application..."
                 systemctl restart asteriskmanager
                 rm -f "$0"

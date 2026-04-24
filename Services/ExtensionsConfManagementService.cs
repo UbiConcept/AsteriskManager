@@ -36,14 +36,14 @@ public class ExtensionsConfManagementService
             // Find [from-internal] section
             var fromInternalIndex = FindSectionIndex(lines, "from-internal");
 
-            if (fromInternalIndex == -1)
-            {
+            //if (fromInternalIndex == -1)
+            //{
                 // Section doesn't exist, create it
                 _logger.LogInformation("Creating [from-internal] section in extensions.conf");
                 lines.Add("");
                 lines.Add("[from-internal]");
                 fromInternalIndex = lines.Count - 1;
-            }
+            //}
 
             // Check if extension already exists in this section
             var existingIndex = FindExtensionInSection(lines, fromInternalIndex, extension);
